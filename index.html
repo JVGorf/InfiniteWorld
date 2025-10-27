@@ -8,7 +8,14 @@
 </head>
 <body>
     <div class="container">
-        <div class="panel">Use WASD to move your character<hr><div id="debug"></div></div>
+        <div class="panel"><div id="coords"></div><hr><p>Use WASD or arrow keys to move your character.</p>
+            <p>
+            Use +/- to zoom in and out. (Zoomed in by default)
+            </p>
+            <hr>
+            Proof of concept: An infinite "world" in a browser. Think of this as a 2D top-down map. Each character is a "tile" so instead of seeing a grass tile, water tile, farm tile, tree tile, etc... you see letters. Kind of like the OG Dwarf Fortress map, except this map is infinite. Go ahead, stick a weight on a WASD or arrow key and see how far it goes. 
+        
+        </div>
         <div id="world"></div>
     </div>
     <script src="script.js"></script>
