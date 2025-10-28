@@ -1,5 +1,6 @@
 const world = document.getElementById('world');
 const coords = document.getElementById('coords');
+const statusDiv = document.getElementById('status');
 
 let viewSize = {
     width: 0,
@@ -15,11 +16,21 @@ const zoomLevels = [
     { fontSize: 28, tileSize: 36 }, // Mid Zoom
     { fontSize: 18, tileSize: 24 }  // Min Zoom
 ];
-let currentZoomLevelIndex = 0; // Start at default zoom
+let currentZoomLevelIndex = 1; // Start at default zoom
 
 function getRandomChar() {
-    return String.fromCharCode(Math.floor(Math.random() * 26) + 97);
+    const chars = ['v', 't', '~', 'M', 'm'];
+    const randomIndex = Math.floor(Math.random() * chars.length);
+    return chars[randomIndex];
 }
+
+const charData = {
+    'v': { color: 'green', description: 'Tall grass' },
+    't': { color: 'brown', description: 'A tree' },
+    '~': { color: '#0066cc', description: 'Water' },
+    'M': { color: 'grey', description: 'A mountain' },
+    'm': { color: 'lightgreen', description: 'Hills' }
+};
 
 function getTile(x, y) {
     if (!worldData.has(y)) {
@@ -54,6 +65,9 @@ function render() {
     const playerWorldY = worldOffset.y + Math.floor(viewSize.height / 2);
     coords.innerHTML = `Coords: X${playerWorldX}, Y${-playerWorldY}`;
 
+    const playerTileChar = getTile(playerWorldX, playerWorldY);
+    statusDiv.innerHTML = `Status: ${charData[playerTileChar].description}`;
+
     world.innerHTML = '';
     const playerX = Math.floor(viewSize.width / 2);
     const playerY = Math.floor(viewSize.height / 2);
@@ -71,7 +85,9 @@ function render() {
             } else {
                 const worldX = worldOffset.x + x;
                 const worldY = worldOffset.y + y;
-                tileDiv.innerHTML = getTile(worldX, worldY);
+                const char = getTile(worldX, worldY);
+                tileDiv.innerHTML = char;
+                tileDiv.style.color = charData[char].color;
             }
             rowDiv.appendChild(tileDiv);
         }
