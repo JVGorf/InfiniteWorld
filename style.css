@@ -9,7 +9,7 @@ body {
 }
 
 .panel {
-    width: 245px;
+    width: 250px;
     padding: 20px;
     background-color: #636363;
     color: #ebebeb;
@@ -26,7 +26,7 @@ body {
 
 #world {
     flex: 1;
-    background-color: black;
+    background-color: #202020;
     color: grey;
     overflow: hidden;
     font-size: var(--world-font-size); /* Use CSS variable */
@@ -46,11 +46,17 @@ body {
 
 #coords {
     text-align: center;
+    color: #C8B68C;
+}
+
+#status {
+    text-align: center;
+    color: #C8B68C;
 }
 
 #world .player {
-    color: yellow;
-    font-weight: bold;
+    color: #b5b511;
+    background-color: #131212;
 }
 
 ::-webkit-scrollbar {
@@ -58,11 +64,11 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-    background: #f1f1f1; 
+    background: #888; 
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #888; 
+    background: #f1f1f1; 
 }
 
 ::-webkit-scrollbar-button {

@@ -12,32 +12,115 @@ let worldOffset = { x: 0, y: 0 };
 
 // Define zoom levels
 const zoomLevels = [
-    { fontSize: 38, tileSize: 48 }, // Default/Max Zoom
-    { fontSize: 28, tileSize: 36 }, // Mid Zoom
+    { fontSize: 38, tileSize: 48 }, // Max Zoom
+    { fontSize: 28, tileSize: 36 }, // Mid Zoom (Default)
     { fontSize: 18, tileSize: 24 }  // Min Zoom
 ];
-let currentZoomLevelIndex = 1; // Start at default zoom
+let currentZoomLevelIndex = 1; // Start zoom (0:max, 1:mid, 2:min)
 
 function getRandomChar() {
-    const chars = ['v', 't', '~', 'M', 'm'];
-    const randomIndex = Math.floor(Math.random() * chars.length);
-    return chars[randomIndex];
+    const chars = Object.keys(charData);
+    const weights = chars.map(char => parseFloat(charData[char].chance));
+    const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+    
+    let random = Math.random() * totalWeight;
+    
+    for (let i = 0; i < chars.length; i++) {
+        if (random < weights[i]) {
+            return chars[i];
+        }
+        random -= weights[i];
+    }
+    
+    // Fallback
+    return chars[chars.length - 1];
 }
 
 const charData = {
-    'v': { color: 'green', description: 'Tall grass' },
-    't': { color: 'brown', description: 'A tree' },
-    '~': { color: '#0066cc', description: 'Water' },
-    'M': { color: 'grey', description: 'A mountain' },
-    'm': { color: 'lightgreen', description: 'Hills' }
+    'v': { color: 'wheat', description: 'Crops', chance: '2' },
+    't': { color: 'brown', description: 'Trees', chance: '28' },
+    '~': { color: '#0066cc', description: 'Water', chance: '0.3', rule: 'cluster' },
+    'M': { color: 'grey', description: 'Mountains', chance: '0.2' , rule: 'cluster' }, //8
+    'm': { color: 'green', description: 'Hills', chance: '2' },
+    '.': { color: 'seagreen', description: 'Grass', chance: '65' }
 };
+
+function setTile(x, y, char) {
+    if (!worldData.has(y)) {
+        worldData.set(y, new Map());
+    }
+    // Do not overwrite existing tiles to allow for natural cluster shapes.
+    if (!worldData.get(y).has(x)) {
+        worldData.get(y).set(x, char);
+        return true; // Tile was set
+    }
+    return false; // Tile was not set
+}
+
+function generateCluster(startX, startY, char) {
+    const clusterSize = Math.floor(Math.random() * (64 - 8 + 1)) + 8;
+    const frontier = [[startX, startY]];
+    const clusterTiles = new Set([`${startX},${startY}`]);
+    
+    if (!setTile(startX, startY, char)) {
+        return; // Start tile was already set, so don't generate a cluster here.
+    }
+
+    let count = 1;
+
+    while (frontier.length > 0 && count < clusterSize) {
+        const randomIndex = Math.floor(Math.random() * frontier.length);
+        const [cx, cy] = frontier.splice(randomIndex, 1)[0];
+
+        const neighbors = [
+            [cx + 1, cy],
+            [cx - 1, cy],
+            [cx, cy + 1],
+            [cx, cy - 1]
+        ];
+
+        // Shuffle neighbors to make it more random
+        for (let i = neighbors.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [neighbors[i], neighbors[j]] = [neighbors[j], neighbors[i]];
+        }
+
+        for (const [nx, ny] of neighbors) {
+            if (count >= clusterSize) break;
+
+            const key = `${nx},${ny}`;
+            if (!clusterTiles.has(key)) {
+                // Add some randomness to the expansion
+                if (Math.random() < 0.6) { // 60% chance to expand to a neighbor
+                    if (setTile(nx, ny, char)) {
+                        count++;
+                        clusterTiles.add(key);
+                        frontier.push([nx, ny]);
+                    }
+                } else {
+                    // Even if we don't expand, mark it as considered to avoid getting stuck in loops
+                    clusterTiles.add(key);
+                }
+            }
+        }
+    }
+}
 
 function getTile(x, y) {
     if (!worldData.has(y)) {
         worldData.set(y, new Map());
     }
     if (!worldData.get(y).has(x)) {
-        worldData.get(y).set(x, getRandomChar());
+        const char = getRandomChar();
+        if (charData[char].rule === 'cluster') {
+            generateCluster(x, y, char);
+        } else {
+            setTile(x, y, char);
+        }
+        // Fallback to ensure a tile is always set
+        if (!worldData.get(y).has(x)) {
+            setTile(x, y, char);
+        }
     }
     return worldData.get(y).get(x);
 }
@@ -80,7 +163,7 @@ function render() {
             tileDiv.classList.add('tile');
 
             if (x === playerX && y === playerY) {
-                tileDiv.innerHTML = 'X';
+                tileDiv.innerHTML = 'ǒ';
                 tileDiv.classList.add('player');
             } else {
                 const worldX = worldOffset.x + x;
