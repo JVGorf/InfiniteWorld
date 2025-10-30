@@ -45,6 +45,56 @@ const charData = {
     '·': { color: 'seagreen', description: 'Grass', chance: '65' }
 };
 
+// --- Day/Night Cycle Configuration ---
+// You can easily change the durations (in minutes) and colors for the cycle here.
+const cycleConfig = {
+    dayDurationMinutes: 120,     // 2 hours = 120
+    nightDurationMinutes: 60,   // 1 hour = 60
+    dayColor: '#8FBC8F',       // A medium green for daytime
+    nightColor: '#202020'      // A dark grey for nighttime
+};
+// --- End Day/Night Cycle Configuration ---
+
+/**
+ * Injects CSS rules into the document head to control the day/night background colors.
+ * This allows the colors to be configured in the cycleConfig object.
+ */
+function applyCycleStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+        #world.day {
+            background-color: ${cycleConfig.dayColor};
+        }
+        #world.night {
+            background-color: ${cycleConfig.nightColor};
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+/**
+ * Calculates the current phase of the day/night cycle and applies the correct CSS class.
+ * Uses the modulo operator on the current timestamp to create a repeating cycle.
+ */
+function updateDayNightCycle(startTime) {
+    const totalCycleMinutes = cycleConfig.dayDurationMinutes + cycleConfig.nightDurationMinutes;
+    const totalCycleMillis = totalCycleMinutes * 60 * 1000;
+    const dayDurationMillis = cycleConfig.dayDurationMinutes * 60 * 1000;
+
+    const elapsedTime = Date.now() - startTime;
+    const currentCyclePosition = elapsedTime % totalCycleMillis;
+
+    if (currentCyclePosition < dayDurationMillis) {
+        // It's daytime
+        world.classList.add('day');
+        world.classList.remove('night');
+    } else {
+        // It's nighttime
+        world.classList.add('night');
+        world.classList.remove('day');
+    }
+}
+
 function setTile(x, y, char) {
     if (!worldData.has(y)) {
         worldData.set(y, new Map());
@@ -234,6 +284,20 @@ function onResize() {
 window.addEventListener('resize', onResize);
 
 document.addEventListener('DOMContentLoaded', () => {
+    const startTime = Date.now();
+
+    // Day/Night Cycle Initialisation
+    applyCycleStyles();
+    updateDayNightCycle(startTime); // Set initial state instantly (no transition class yet)
+
+    // Use a short timeout to allow the initial color to be rendered,
+    // then enable transitions for all future changes.
+    setTimeout(() => {
+        world.classList.add('enable-transition');
+    }, 50); // 50ms is enough for the initial paint
+
+    setInterval(() => updateDayNightCycle(startTime), 1000); // Check for phase change every second
+
     // Initial setup
     applyZoom(); // Apply initial zoom level
     // Center the initial view
