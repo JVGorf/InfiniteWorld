@@ -42,7 +42,7 @@ const charData = {
     '~': { color: '#0066cc', description: 'Water', chance: '0.3', rule: 'cluster' },
     'M': { color: 'grey', description: 'Mountains', chance: '0.2' , rule: 'cluster' }, //8
     'm': { color: 'green', description: 'Hills', chance: '2' },
-    '.': { color: 'seagreen', description: 'Grass', chance: '65' }
+    '·': { color: 'seagreen', description: 'Grass', chance: '65' }
 };
 
 function setTile(x, y, char) {
