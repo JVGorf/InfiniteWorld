@@ -21,9 +21,47 @@
 </head>
 <body>
     <div class="container">
-        <div class="panel"><div id="coords"></div><div id="status"></div><hr><p>Use WASD or arrow keys to move your character. Use +/- to zoom in/out.</p>
+        <div class="panel"><div id="coords"></div><div id="status"></div><div id="status-image"></div>
+            <div id="character-info">
+                <span id="character-options-icon">&#9776;</span>
+                Character: <span id="character-name"></span>
+            </div>
+            <hr><p>Use WASD or arrow keys to move your character. Use +/- to zoom in/out.</p>
             <hr>
             Proof of concept: An infinite "world" in a browser. Think of this as a 2D top-down map. Each character is a "tile" so instead of seeing a grass tile, water tile, farm tile, tree tile, etc... you see letters. Kind of like the OG Dwarf Fortress map, except this map is infinite. Go ahead, stick a weight on a WASD or arrow key and see how far it goes.       
+        </div>
+        <div id="character-panel">
+            <input type="text" id="character-name-input">
+            <div id="attributes-container">
+                <div class="attribute-row">
+                    <span>Strength</span>
+                    <div>
+                        <span class="arrow" id="str-down">◀</span>
+                        <span id="str-value">7</span>
+                        <span class="arrow" id="str-up">▶</span>
+                    </div>
+                </div>
+                <div class="attribute-row">
+                    <span>Speed</span>
+                    <div>
+                        <span class="arrow" id="spd-down">◀</span>
+                        <span id="spd-value">7</span>
+                        <span class="arrow" id="spd-up">▶</span>
+                    </div>
+                </div>
+                <div class="attribute-row">
+                    <span>Intelligence</span>
+                    <div>
+                        <span class="arrow" id="int-down">◀</span>
+                        <span id="int-value">7</span>
+                        <span class="arrow" id="int-up">▶</span>
+                    </div>
+                </div>
+                <div id="available-points">
+                    Available Points: <span id="points-value">0</span>
+                </div>
+            </div>
+            <button id="save-character-button">Save</button>
         </div>
         <div id="world"></div>
     </div>

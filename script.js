@@ -1,13 +1,47 @@
 const world = document.getElementById('world');
 const coords = document.getElementById('coords');
 const statusDiv = document.getElementById('status');
+const statusImageDiv = document.getElementById('status-image');
+const characterOptionsIcon = document.getElementById('character-options-icon');
+const characterNameSpan = document.getElementById('character-name');
+const characterPanel = document.getElementById('character-panel');
+const characterNameInput = document.getElementById('character-name-input');
+const saveCharacterButton = document.getElementById('save-character-button');
+
+const strValue = document.getElementById('str-value');
+const spdValue = document.getElementById('spd-value');
+const intValue = document.getElementById('int-value');
+const pointsValue = document.getElementById('points-value');
+
+const strUp = document.getElementById('str-up');
+const strDown = document.getElementById('str-down');
+const spdUp = document.getElementById('spd-up');
+const spdDown = document.getElementById('spd-down');
+const intUp = document.getElementById('int-up');
+const intDown = document.getElementById('int-down');
+
+const totalPoints = 21;
+let characterAttributes = {
+    strength: 7,
+    speed: 7,
+    intelligence: 7
+};
+
+const randomNames = ['Arion', 'Elora', 'Kael', 'Seraphina', 'Thorne'];
+
+function getRandomName() {
+    return randomNames[Math.floor(Math.random() * randomNames.length)];
+}
+
+let characterName = getRandomName();
 
 let viewSize = {
     width: 0,
     height: 0,
 };
 
-const worldData = new Map(); // y -> Map(x -> char)
+let startTime = Date.now();
+let worldData = new Map(); // y -> Map(x -> char)
 let worldOffset = { x: 0, y: 0 };
 
 // Define zoom levels
@@ -37,12 +71,13 @@ function getRandomChar() {
 }
 
 const charData = {
-    'v': { color: 'wheat', description: 'Crops', chance: '2' },
-    't': { color: 'brown', description: 'Trees', chance: '28' },
-    '~': { color: '#0066cc', description: 'Water', chance: '0.3', rule: 'cluster' },
-    'M': { color: 'grey', description: 'Mountains', chance: '0.2' , rule: 'cluster' }, //8
-    'm': { color: 'green', description: 'Hills', chance: '2' },
-    '·': { color: 'seagreen', description: 'Grass', chance: '65' }
+    'v': { color: 'wheat', description: 'Crops', chance: '2', image: 'crops.jpg' },
+    't': { color: 'brown', description: 'Trees', chance: '28', image: 'trees.jpg' },
+    '~': { color: '#0066cc', description: 'Water', chance: '0.3', image: 'lake.jpg', rule: 'cluster' },
+    'M': { color: 'grey', description: 'Mountains', chance: '0.2' , image: 'mountains.jpg', rule: 'cluster' }, //8
+    'm': { color: 'green', description: 'Hills', chance: '2', image: 'hills.jpg' },
+    '·': { color: 'seagreen', description: 'Grass', chance: '65', image: 'grass.jpg' },
+    'Ħ': { color: 'white', description: 'Temple', chance: '0.1', image: 'temple.jpg' }
 };
 
 // --- Day/Night Cycle Configuration ---
@@ -161,7 +196,14 @@ function getTile(x, y) {
         worldData.set(y, new Map());
     }
     if (!worldData.get(y).has(x)) {
-        const char = getRandomChar();
+
+        let char;
+        if (x === 0 && y === 0) {
+            char = 'Ħ';
+        } else {
+            char = getRandomChar();
+        }
+
         if (charData[char].rule === 'cluster') {
             generateCluster(x, y, char);
         } else {
@@ -193,6 +235,40 @@ function applyZoom() {
     render(); // Re-render with adjusted offset
 }
 
+function saveGame() {
+    characterName = characterNameInput.value;
+    localStorage.setItem('characterName', characterName);
+    localStorage.setItem('characterAttributes', JSON.stringify(characterAttributes));
+    localStorage.setItem('startTime', startTime);
+    const worldDataArray = Array.from(worldData.entries()).map(([y, row]) => [y, Array.from(row.entries())]);
+    localStorage.setItem('worldData', JSON.stringify(worldDataArray));
+    updateCharacterName();
+    closeCharacterPanel();
+}
+
+function loadGame() {
+    const savedName = localStorage.getItem('characterName');
+    if (savedName) {
+        characterName = savedName;
+    }
+
+    const savedAttributes = localStorage.getItem('characterAttributes');
+    if (savedAttributes) {
+        characterAttributes = JSON.parse(savedAttributes);
+    }
+
+    const savedStartTime = localStorage.getItem('startTime');
+    if (savedStartTime) {
+        startTime = parseInt(savedStartTime);
+    }
+
+    const savedWorldData = localStorage.getItem('worldData');
+    if (savedWorldData) {
+        const worldDataArray = JSON.parse(savedWorldData);
+        worldData = new Map(worldDataArray.map(([y, rowArray]) => [y, new Map(rowArray)]));
+    }
+}
+
 function render() {
     const playerWorldX = worldOffset.x + Math.floor(viewSize.width / 2);
     const playerWorldY = worldOffset.y + Math.floor(viewSize.height / 2);
@@ -200,6 +276,13 @@ function render() {
 
     const playerTileChar = getTile(playerWorldX, playerWorldY);
     statusDiv.innerHTML = `Status: ${charData[playerTileChar].description}`;
+
+    const imageName = charData[playerTileChar].image;
+    if (imageName) {
+        statusImageDiv.innerHTML = `<img src="images/${imageName}" alt="${charData[playerTileChar].description}">`;
+    } else {
+        statusImageDiv.innerHTML = '';
+    }
 
     world.innerHTML = '';
     const playerX = Math.floor(viewSize.width / 2);
@@ -283,8 +366,58 @@ function onResize() {
 
 window.addEventListener('resize', onResize);
 
+function updateCharacterName() {
+    characterNameSpan.textContent = characterName;
+    characterNameInput.value = characterName;
+}
+
+function openCharacterPanel() {
+    characterPanel.classList.add('open');
+}
+
+function closeCharacterPanel() {
+    characterPanel.classList.remove('open');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-    const startTime = Date.now();
+    loadGame();
+
+    function updateAttributesUI() {
+        strValue.textContent = String(characterAttributes.strength).padStart(2, '0');
+        spdValue.textContent = String(characterAttributes.speed).padStart(2, '0');
+        intValue.textContent = String(characterAttributes.intelligence).padStart(2, '0');
+        const usedPoints = characterAttributes.strength + characterAttributes.speed + characterAttributes.intelligence;
+        pointsValue.textContent = totalPoints - usedPoints;
+    }
+
+    function changeAttribute(attribute, direction) {
+        const currentSum = characterAttributes.strength + characterAttributes.speed + characterAttributes.intelligence;
+        if (direction === 'up') {
+            if (characterAttributes[attribute] < 10 && currentSum < totalPoints) {
+                characterAttributes[attribute]++;
+            }
+        } else if (direction === 'down') {
+            if (characterAttributes[attribute] > 1) {
+                characterAttributes[attribute]--;
+            }
+        }
+        updateAttributesUI();
+    }
+
+    strUp.addEventListener('click', () => changeAttribute('strength', 'up'));
+    strDown.addEventListener('click', () => changeAttribute('strength', 'down'));
+    spdUp.addEventListener('click', () => changeAttribute('speed', 'up'));
+    spdDown.addEventListener('click', () => changeAttribute('speed', 'down'));
+    intUp.addEventListener('click', () => changeAttribute('intelligence', 'up'));
+    intDown.addEventListener('click', () => changeAttribute('intelligence', 'down'));
+
+    characterOptionsIcon.addEventListener('click', openCharacterPanel);
+    saveCharacterButton.addEventListener('click', saveGame);
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            closeCharacterPanel();
+        }
+    });
 
     // Day/Night Cycle Initialisation
     applyCycleStyles();
@@ -299,6 +432,8 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(() => updateDayNightCycle(startTime), 1000); // Check for phase change every second
 
     // Initial setup
+    updateCharacterName();
+    updateAttributesUI();
     applyZoom(); // Apply initial zoom level
     // Center the initial view
     worldOffset.x = -Math.floor(viewSize.width / 2);
