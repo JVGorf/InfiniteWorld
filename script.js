@@ -7,6 +7,8 @@ const characterNameSpan = document.getElementById('character-name');
 const characterPanel = document.getElementById('character-panel');
 const characterNameInput = document.getElementById('character-name-input');
 const saveCharacterButton = document.getElementById('save-character-button');
+const infoIcon = document.getElementById('info-icon');
+const infoPanel = document.getElementById('info-panel');
 
 const strValue = document.getElementById('str-value');
 const spdValue = document.getElementById('spd-value');
@@ -74,11 +76,11 @@ function getRandomChar() {
 const charData = {
     'v': { color: 'wheat', description: 'Crops', chance: '2', image: 'crops.jpg' },
     't': { color: 'brown', description: 'Trees', chance: '28', image: 'trees.jpg' },
-    '~': { color: '#0066cc', description: 'Water', chance: '0.3', image: 'lake.jpg', rule: 'cluster' },
+    '~': { color: '#0066cc', description: 'Lake', chance: '0.3', image: 'lake.jpg', rule: 'cluster' },
     'M': { color: 'grey', description: 'Mountains', chance: '0.2' , image: 'mountains.jpg', rule: 'cluster' }, //8
     'm': { color: 'green', description: 'Hills', chance: '2', image: 'hills.jpg' },
     '·': { color: 'seagreen', description: 'Grass', chance: '65', image: 'grass.jpg' },
-    'Ħ': { color: 'white', description: 'Temple', chance: '0.01', image: 'temple.jpg' }
+    'Ħ': { color: 'white', description: 'Shrine', chance: '0.01', image: 'shrine.jpg' }
 };
 
 // --- Day/Night Cycle Configuration ---
@@ -389,6 +391,14 @@ function closeCharacterPanel() {
     characterPanel.classList.remove('open');
 }
 
+function openInfoPanel() {
+    infoPanel.classList.add('open');
+}
+
+function closeInfoPanel() {
+    infoPanel.classList.remove('open');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     loadGame();
 
@@ -422,10 +432,13 @@ document.addEventListener('DOMContentLoaded', () => {
     intDown.addEventListener('click', () => changeAttribute('intelligence', 'down'));
 
     characterOptionsIcon.addEventListener('click', openCharacterPanel);
+    infoIcon.addEventListener('click', openInfoPanel);
+    document.getElementById('save-icon').addEventListener('click', saveGame);
     saveCharacterButton.addEventListener('click', saveGame);
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
             closeCharacterPanel();
+            closeInfoPanel();
         }
     });
 

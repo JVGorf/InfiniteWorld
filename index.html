@@ -21,14 +21,18 @@
 </head>
 <body>
     <div class="container">
-        <div class="panel"><div id="coords"></div><div id="status"></div><div id="status-image"></div>
+        <div class="panel">
             <div id="character-info">
-                <span id="character-options-icon">&#9776;</span>
-                Name: <span id="character-name"></span>
+                <img id="save-icon" src="images/save.png" alt="Save">
+                <img id="character-options-icon" src="images/options.png" alt="Options">
+                <img id="info-icon" src="images/info.png" alt="Info">
+                 <span id="character-name"></span>
+                <!-- Note space before name ID which replaced "Name:" -->
             </div>
-            <hr><p>Use WASD or arrow keys to move your character. Use +/- to zoom in/out.</p>
-            <hr>
-            Proof of concept: An infinite "world" in a browser. Think of this as a 2D top-down map. Each character is a "tile" so instead of seeing a grass tile, water tile, farm tile, tree tile, etc... you see letters. Kind of like the OG Dwarf Fortress map, except this map is infinite. Go ahead, stick a weight on a WASD or arrow key and see how far it goes.       
+            <div id="status-image"></div>
+            <div id="coords"></div>
+            <div id="status"></div>
+            <hr><p>Hello World!</p>       
         </div>
         <div id="character-panel">
             <input type="text" id="character-name-input">
@@ -62,6 +66,12 @@
                 </div>
             </div>
             <button id="save-character-button">Save</button>
+        </div>
+        <div id="info-panel">
+            <h2>Information</h2>
+            <p>Use WASD or arrow keys to move your character. Use +/- to zoom in/out.</p>
+            <p>Proof of concept: An infinite RPG world in a browser. Think of this as a 2D top-down map. Each character is a "tile" so instead of seeing a grass tile, mountain tile, tree tile, etc... you see characters like t for tree or M for mountains. This is lightly borrowed from the OG Dwarf Fortress map, except this map is infinite.</p>
+        <p>Hit escape to exit this (or any) panel.</p>
         </div>
         <div id="world"></div>
     </div>
