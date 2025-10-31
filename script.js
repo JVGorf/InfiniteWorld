@@ -249,6 +249,7 @@ function saveGame() {
         y: worldOffset.y + Math.floor(viewSize.height / 2)
     };
     localStorage.setItem('playerLocation', JSON.stringify(playerLocation));
+    localStorage.setItem('currentZoomLevelIndex', currentZoomLevelIndex);
     updateCharacterName();
     closeCharacterPanel();
 }
@@ -278,6 +279,11 @@ function loadGame() {
     const savedLocation = localStorage.getItem('playerLocation');
     if (savedLocation) {
         loadedPlayerLocation = JSON.parse(savedLocation);
+    }
+
+    const savedZoomLevel = localStorage.getItem('currentZoomLevelIndex');
+    if (savedZoomLevel !== null) {
+        currentZoomLevelIndex = parseInt(savedZoomLevel);
     }
 }
 
@@ -324,6 +330,11 @@ function render() {
 }
 
 document.addEventListener('keydown', (event) => {
+    // If the character name input is focused, prevent world movement
+    if (document.activeElement === characterNameInput) {
+        return;
+    }
+
     switch (event.key) {
         case 'w':
         case 'W':
@@ -457,7 +468,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initial setup
     updateCharacterName();
     updateAttributesUI();
-    applyZoom(); // Apply initial zoom level
+    applyZoom(); // Apply initial zoom level (or loaded zoom level)
     if (loadedPlayerLocation) {
         worldOffset.x = loadedPlayerLocation.x - Math.floor(viewSize.width / 2);
         worldOffset.y = loadedPlayerLocation.y - Math.floor(viewSize.height / 2);
