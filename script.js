@@ -77,14 +77,13 @@ const charData = {
     'M': { color: 'grey', description: 'Mountains', chance: '0.2' , image: 'mountains.jpg', rule: 'cluster' }, //8
     'm': { color: 'green', description: 'Hills', chance: '2', image: 'hills.jpg' },
     '·': { color: 'seagreen', description: 'Grass', chance: '65', image: 'grass.jpg' },
-    'Ħ': { color: 'white', description: 'Temple', chance: '0.1', image: 'temple.jpg' }
+    'Ħ': { color: 'white', description: 'Temple', chance: '0.01', image: 'temple.jpg' }
 };
 
 // --- Day/Night Cycle Configuration ---
-// You can easily change the durations (in minutes) and colors for the cycle here.
 const cycleConfig = {
-    dayDurationMinutes: 120,     // 2 hours = 120
-    nightDurationMinutes: 60,   // 1 hour = 60
+    dayDurationMinutes: 90,    // 2 hours = 120
+    nightDurationMinutes: 45,  // 1 hour = 60
     dayColor: '#8FBC8F',       // A medium green for daytime
     nightColor: '#202020'      // A dark grey for nighttime
 };
@@ -275,7 +274,7 @@ function render() {
     coords.innerHTML = `Coords: X${playerWorldX}, Y${-playerWorldY}`;
 
     const playerTileChar = getTile(playerWorldX, playerWorldY);
-    statusDiv.innerHTML = `Status: ${charData[playerTileChar].description}`;
+    statusDiv.innerHTML = `Loc: ${charData[playerTileChar].description}`;
 
     const imageName = charData[playerTileChar].image;
     if (imageName) {
