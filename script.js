@@ -43,6 +43,7 @@ let viewSize = {
 let startTime = Date.now();
 let worldData = new Map(); // y -> Map(x -> char)
 let worldOffset = { x: 0, y: 0 };
+let loadedPlayerLocation = null;
 
 // Define zoom levels
 const zoomLevels = [
@@ -241,6 +242,11 @@ function saveGame() {
     localStorage.setItem('startTime', startTime);
     const worldDataArray = Array.from(worldData.entries()).map(([y, row]) => [y, Array.from(row.entries())]);
     localStorage.setItem('worldData', JSON.stringify(worldDataArray));
+    const playerLocation = {
+        x: worldOffset.x + Math.floor(viewSize.width / 2),
+        y: worldOffset.y + Math.floor(viewSize.height / 2)
+    };
+    localStorage.setItem('playerLocation', JSON.stringify(playerLocation));
     updateCharacterName();
     closeCharacterPanel();
 }
@@ -265,6 +271,11 @@ function loadGame() {
     if (savedWorldData) {
         const worldDataArray = JSON.parse(savedWorldData);
         worldData = new Map(worldDataArray.map(([y, rowArray]) => [y, new Map(rowArray)]));
+    }
+
+    const savedLocation = localStorage.getItem('playerLocation');
+    if (savedLocation) {
+        loadedPlayerLocation = JSON.parse(savedLocation);
     }
 }
 
@@ -434,8 +445,13 @@ document.addEventListener('DOMContentLoaded', () => {
     updateCharacterName();
     updateAttributesUI();
     applyZoom(); // Apply initial zoom level
-    // Center the initial view
-    worldOffset.x = -Math.floor(viewSize.width / 2);
-    worldOffset.y = -Math.floor(viewSize.height / 2);
+    if (loadedPlayerLocation) {
+        worldOffset.x = loadedPlayerLocation.x - Math.floor(viewSize.width / 2);
+        worldOffset.y = loadedPlayerLocation.y - Math.floor(viewSize.height / 2);
+    } else {
+        // Center the initial view
+        worldOffset.x = -Math.floor(viewSize.width / 2);
+        worldOffset.y = -Math.floor(viewSize.height / 2);
+    }
     render();
 });
