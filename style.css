@@ -226,7 +226,8 @@ img#save-icon:hover {
     left: 0;
 }
 
-#character-name-input {
+#character-name-input,
+#world-seed-input {
     width: 100%;
     padding: 10px;
     box-sizing: border-box;
@@ -236,7 +237,8 @@ img#save-icon:hover {
     border: 1px solid #ebebeb;
 }
 
-#save-character-button {
+#save-character-button,
+#save-settings-button {
     padding: 10px;
     cursor: pointer;
     background-color: #636363;
@@ -247,7 +249,6 @@ img#save-icon:hover {
 
 #attributes-container {
     margin-top: 10px;
-    font-size: 18px;
     color: #C8B68C;
 }
 
@@ -271,7 +272,81 @@ img#save-icon:hover {
 }
 
 #character-name {
+
     font-size: 22px;
+
     color: gold;
+
     /* text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; */
+
+}
+
+
+
+/* Tab Styles */
+
+.tab-buttons {
+
+    display: flex;
+
+    margin-bottom: 10px;
+
+}
+
+
+
+.tab-button {
+
+    flex: 1;
+
+    padding: 10px;
+
+    cursor: pointer;
+
+    background-color: #636363;
+
+    color: #ebebeb;
+
+    border: 1px solid #ebebeb;
+
+    border-bottom: none;
+
+}
+
+
+
+.tab-button.active {
+
+    background-color: #4d4d4d;
+
+    border-bottom: 1px solid #4d4d4d;
+
+}
+
+
+
+.tab-button:not(.active):hover {
+
+    background-color: #7a7a7a;
+
+}
+
+
+
+.tab-content {
+
+    display: none;
+
+    flex-direction: column;
+
+    height: 100%;
+
+}
+
+
+
+.tab-content.active {
+
+    display: flex;
+
 }

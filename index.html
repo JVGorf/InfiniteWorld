@@ -55,37 +55,47 @@
             <p>Hello World!</p>       
         </div>
         <div id="character-panel">
-            <input type="text" id="character-name-input" maxlength="10">
-            <div id="attributes-container">
-                <div class="attribute-row">
-                    <span>Strength</span>
-                    <div>
-                        <span class="arrow" id="str-down">◀</span>
-                        <span id="str-value">7</span>
-                        <span class="arrow" id="str-up">▶</span>
-                    </div>
-                </div>
-                <div class="attribute-row">
-                    <span>Speed</span>
-                    <div>
-                        <span class="arrow" id="spd-down">◀</span>
-                        <span id="spd-value">7</span>
-                        <span class="arrow" id="spd-up">▶</span>
-                    </div>
-                </div>
-                <div class="attribute-row">
-                    <span>Intelligence</span>
-                    <div>
-                        <span class="arrow" id="int-down">◀</span>
-                        <span id="int-value">7</span>
-                        <span class="arrow" id="int-up">▶</span>
-                    </div>
-                </div>
-                <div id="available-points">
-                    Available Points: <span id="points-value">0</span>
-                </div>
+            <div class="tab-buttons">
+                <button class="tab-button active" data-tab="character-tab">Character</button>
+                <button class="tab-button" data-tab="settings-tab">Settings</button>
             </div>
-            <button id="save-character-button">Save</button>
+            <div id="character-tab" class="tab-content active">
+                <input type="text" id="character-name-input" maxlength="10">
+                <div id="attributes-container">
+                    <div class="attribute-row">
+                        <span>Strength</span>
+                        <div>
+                            <span class="arrow" id="str-down">◀</span>
+                            <span id="str-value">7</span>
+                            <span class="arrow" id="str-up">▶</span>
+                        </div>
+                    </div>
+                    <div class="attribute-row">
+                        <span>Speed</span>
+                        <div>
+                            <span class="arrow" id="spd-down">◀</span>
+                            <span id="spd-value">7</span>
+                            <span class="arrow" id="spd-up">▶</span>
+                        </div>
+                    </div>
+                    <div class="attribute-row">
+                        <span>Intelligence</span>
+                        <div>
+                            <span class="arrow" id="int-down">◀</span>
+                            <span id="int-value">7</span>
+                            <span class="arrow" id="int-up">▶</span>
+                        </div>
+                    </div>
+                    <div id="available-points">
+                        Available Points: <span id="points-value">0</span>
+                    </div>
+                </div>
+                <button id="save-character-button">Save</button>
+            </div>
+            <div id="settings-tab" class="tab-content">
+                <input type="text" id="world-seed-input">
+                <button id="save-settings-button">Save</button>
+            </div>
         </div>
         <div id="info-panel">
             <h2>Information</h2>

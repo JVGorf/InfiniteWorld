@@ -17,7 +17,9 @@ const characterOptionsIcon = document.getElementById('character-options-icon');
 const characterNameSpan = document.getElementById('character-name');
 const characterPanel = document.getElementById('character-panel');
 const characterNameInput = document.getElementById('character-name-input');
+const worldSeedInput = document.getElementById('world-seed-input');
 const saveCharacterButton = document.getElementById('save-character-button');
+const saveSettingsButton = document.getElementById('save-settings-button');
 const infoIcon = document.getElementById('info-icon');
 const infoPanel = document.getElementById('info-panel');
 const teleportTransition = document.getElementById('teleport-transition');
@@ -273,6 +275,8 @@ function applyZoom() {
 
 function saveGame() {
     characterName = characterNameInput.value;
+    worldSeed = parseInt(worldSeedInput.value) || worldSeed;
+
     localStorage.setItem('characterName', characterName);
     localStorage.setItem('characterAttributes', JSON.stringify(characterAttributes));
     localStorage.setItem('startTime', startTime);
@@ -475,6 +479,7 @@ function updateCharacterName() {
 }
 
 function openCharacterPanel() {
+    worldSeedInput.value = worldSeed;
     characterPanel.classList.add('open');
 }
 
@@ -491,8 +496,38 @@ function closeInfoPanel() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('reset') === 'true') {
+        localStorage.removeItem('characterName');
+        localStorage.removeItem('characterAttributes');
+        localStorage.removeItem('startTime');
+        localStorage.removeItem('worldSeed');
+        localStorage.removeItem('playerLocation');
+        localStorage.removeItem('currentZoomLevelIndex');
+        localStorage.removeItem('recallLocations');
+        // Redirect to clean URL to prevent accidental re-reset on refresh
+        window.location.replace(window.location.origin + window.location.pathname);
+        return; // Stop further execution as we're resetting
+    }
+
     loadGame();
     updateRecallUI();
+
+    // Tab functionality
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const tabId = button.dataset.tab;
+
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+
+            tabContents.forEach(content => content.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+        });
+    });
 
     function updateAttributesUI() {
         strValue.textContent = String(characterAttributes.strength).padStart(2, '0');
@@ -527,6 +562,7 @@ document.addEventListener('DOMContentLoaded', () => {
     infoIcon.addEventListener('click', openInfoPanel);
     document.getElementById('save-icon').addEventListener('click', saveGame);
     saveCharacterButton.addEventListener('click', saveGame);
+    saveSettingsButton.addEventListener('click', saveGame);
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
             closeCharacterPanel();
