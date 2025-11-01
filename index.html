@@ -29,13 +29,33 @@
                  <span id="character-name"></span>
                 <!-- Note space before name ID which replaced "Name:" -->
             </div>
-            <div id="status-image"></div>
+            <div id="status-image">
+                <img id="tile-image" src="" alt="Current Tile">
+            </div>
             <div id="coords"></div>
             <div id="status"></div>
-            <hr><p>Hello World!</p>       
+            <hr>
+            <div class="recall-container">
+                <div class="recall-line">
+                    <a href="#" id="set-recall-1" class="recall-link">Set</a>
+                    <a href="#" id="recall-1" class="recall-link">Recall</a>
+                    <span id="recall-coords-1" class="recall-coords">Not set.</span>
+                </div>
+                <div class="recall-line">
+                    <a href="#" id="set-recall-2" class="recall-link">Set</a>
+                    <a href="#" id="recall-2" class="recall-link">Recall</a>
+                    <span id="recall-coords-2" class="recall-coords">Not set.</span>
+                </div>
+                <div class="recall-line">
+                    <a href="#" id="set-recall-3" class="recall-link">Set</a>
+                    <a href="#" id="recall-3" class="recall-link">Recall</a>
+                    <span id="recall-coords-3" class="recall-coords">Not set.</span>
+                </div>
+            </div>
+            <p>Hello World!</p>       
         </div>
         <div id="character-panel">
-            <input type="text" id="character-name-input">
+            <input type="text" id="character-name-input" maxlength="10">
             <div id="attributes-container">
                 <div class="attribute-row">
                     <span>Strength</span>
@@ -73,8 +93,14 @@
             <p>Proof of concept: An infinite RPG world in a browser. Think of this as a 2D top-down map. Each character is a "tile" so instead of seeing a grass tile, mountain tile, tree tile, etc... you see characters like t for tree or M for mountains. This is lightly borrowed from the OG Dwarf Fortress map, except this map is infinite.</p>
         <p>Hit escape to exit this (or any) panel.</p>
         </div>
-        <div id="world"></div>
+        <div id="WorldZero"></div>
     </div>
+    <div id="teleport-transition" class="teleport-transition"></div>
+    <div id="save-message">Game Saved!</div>
+
+    <audio id="set-recall-audio" src="audio/set-instant-teleport-90645.mp3"></audio>
+    <audio id="recall-audio" src="audio/recall-transitional-swipe-3-211685.mp3"></audio>
+
     <script src="script.js"></script>
 </body>
 </html>

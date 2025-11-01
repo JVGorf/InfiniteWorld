@@ -1,7 +1,18 @@
-const world = document.getElementById('world');
+// Mulberry32 PRNG
+function mulberry32(a) {
+    return function() {
+      var t = a += 0x6D2B79F5;
+      t = Math.imul(t ^ t >>> 15, t | 1);
+      t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    }
+}
+
+const worldContainer = document.getElementById('WorldZero');
 const coords = document.getElementById('coords');
 const statusDiv = document.getElementById('status');
 const statusImageDiv = document.getElementById('status-image');
+const tileImage = document.getElementById('tile-image');
 const characterOptionsIcon = document.getElementById('character-options-icon');
 const characterNameSpan = document.getElementById('character-name');
 const characterPanel = document.getElementById('character-panel');
@@ -9,6 +20,10 @@ const characterNameInput = document.getElementById('character-name-input');
 const saveCharacterButton = document.getElementById('save-character-button');
 const infoIcon = document.getElementById('info-icon');
 const infoPanel = document.getElementById('info-panel');
+const teleportTransition = document.getElementById('teleport-transition');
+
+const setRecallAudio = document.getElementById('set-recall-audio');
+const recallAudio = document.getElementById('recall-audio');
 
 const strValue = document.getElementById('str-value');
 const spdValue = document.getElementById('spd-value');
@@ -43,9 +58,15 @@ let viewSize = {
 };
 
 let startTime = Date.now();
-let worldData = new Map(); // y -> Map(x -> char)
-let worldOffset = { x: 0, y: 0 };
+let worldZeroData = new Map(); // y -> Map(x -> char)
+let worldZeroOffset = { x: 0, y: 0 };
+let worldSeed = 0; // Will be initialized from localStorage or generated
 let loadedPlayerLocation = null;
+let recallLocations = [null, null, null];
+
+let lastPlayerCoords = '';
+let lastPlayerStatus = '';
+let lastPlayerImage = '';
 
 // Define zoom levels
 const zoomLevels = [
@@ -55,12 +76,12 @@ const zoomLevels = [
 ];
 let currentZoomLevelIndex = 1; // Start zoom (0:max, 1:mid, 2:min)
 
-function getRandomChar() {
+function getRandomChar(prng) {
     const chars = Object.keys(charData);
     const weights = chars.map(char => parseFloat(charData[char].chance));
     const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
     
-    let random = Math.random() * totalWeight;
+    let random = prng() * totalWeight;
     
     for (let i = 0; i < chars.length; i++) {
         if (random < weights[i]) {
@@ -80,7 +101,8 @@ const charData = {
     'M': { color: 'grey', description: 'Mountains', chance: '0.2' , image: 'mountains.jpg', rule: 'cluster' }, //8
     'm': { color: 'green', description: 'Hills', chance: '2', image: 'hills.jpg' },
     '·': { color: 'seagreen', description: 'Grass', chance: '65', image: 'grass.jpg' },
-    'Ħ': { color: 'white', description: 'Shrine', chance: '0.01', image: 'shrine.jpg' }
+    'Ħ': { color: 'white', description: 'Shrine', chance: '0.01', image: 'shrine.jpg' },
+    '∩': { color: 'white', bg: 'black', description: 'Cave', chance: '0.01', image: 'cave.jpg' }
 };
 
 // --- Day/Night Cycle Configuration ---
@@ -99,10 +121,10 @@ const cycleConfig = {
 function applyCycleStyles() {
     const style = document.createElement('style');
     style.textContent = `
-        #world.day {
+        #WorldZero.day {
             background-color: ${cycleConfig.dayColor};
         }
-        #world.night {
+        #WorldZero.night {
             background-color: ${cycleConfig.nightColor};
         }
     `;
@@ -123,29 +145,29 @@ function updateDayNightCycle(startTime) {
 
     if (currentCyclePosition < dayDurationMillis) {
         // It's daytime
-        world.classList.add('day');
-        world.classList.remove('night');
+        worldContainer.classList.add('day');
+        worldContainer.classList.remove('night');
     } else {
         // It's nighttime
-        world.classList.add('night');
-        world.classList.remove('day');
+        worldContainer.classList.add('night');
+        worldContainer.classList.remove('day');
     }
 }
 
 function setTile(x, y, char) {
-    if (!worldData.has(y)) {
-        worldData.set(y, new Map());
+    if (!worldZeroData.has(y)) {
+        worldZeroData.set(y, new Map());
     }
     // Do not overwrite existing tiles to allow for natural cluster shapes.
-    if (!worldData.get(y).has(x)) {
-        worldData.get(y).set(x, char);
+    if (!worldZeroData.get(y).has(x)) {
+        worldZeroData.get(y).set(x, char);
         return true; // Tile was set
     }
     return false; // Tile was not set
 }
 
-function generateCluster(startX, startY, char) {
-    const clusterSize = Math.floor(Math.random() * (64 - 8 + 1)) + 8;
+function generateCluster(startX, startY, char, prng) {
+    const clusterSize = Math.floor(prng() * (64 - 8 + 1)) + 8;
     const frontier = [[startX, startY]];
     const clusterTiles = new Set([`${startX},${startY}`]);
     
@@ -156,7 +178,7 @@ function generateCluster(startX, startY, char) {
     let count = 1;
 
     while (frontier.length > 0 && count < clusterSize) {
-        const randomIndex = Math.floor(Math.random() * frontier.length);
+        const randomIndex = Math.floor(prng() * frontier.length);
         const [cx, cy] = frontier.splice(randomIndex, 1)[0];
 
         const neighbors = [
@@ -168,7 +190,7 @@ function generateCluster(startX, startY, char) {
 
         // Shuffle neighbors to make it more random
         for (let i = neighbors.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
+            const j = Math.floor(prng() * (i + 1));
             [neighbors[i], neighbors[j]] = [neighbors[j], neighbors[i]];
         }
 
@@ -178,7 +200,7 @@ function generateCluster(startX, startY, char) {
             const key = `${nx},${ny}`;
             if (!clusterTiles.has(key)) {
                 // Add some randomness to the expansion
-                if (Math.random() < 0.6) { // 60% chance to expand to a neighbor
+                if (prng() < 0.6) { // 60% chance to expand to a neighbor
                     if (setTile(nx, ny, char)) {
                         count++;
                         clusterTiles.add(key);
@@ -194,36 +216,48 @@ function generateCluster(startX, startY, char) {
 }
 
 function getTile(x, y) {
-    if (!worldData.has(y)) {
-        worldData.set(y, new Map());
+    if (!worldZeroData.has(y)) {
+        worldZeroData.set(y, new Map());
     }
-    if (!worldData.get(y).has(x)) {
+    if (!worldZeroData.get(y).has(x)) {
+        // Create a unique seed for this tile based on worldSeed and its coordinates
+        // Using a simple hash function for combining seeds
+        const tileSeed = worldSeed + x * 31 + y * 17; // Prime numbers for better distribution
+        const tilePrng = mulberry32(tileSeed);
 
         let char;
         if (x === 0 && y === 0) {
             char = 'Ħ';
         } else {
-            char = getRandomChar();
+            char = getRandomChar(tilePrng);
         }
 
         if (charData[char].rule === 'cluster') {
-            generateCluster(x, y, char);
+            generateCluster(x, y, char, tilePrng);
+        } else if (charData[char].rule === 'cavespawn') {
+            // First, place the cave tile itself.
+            setTile(x, y, char);
+            // Then, generate a mountain cluster next to it.
+            // We'll pick a random adjacent tile to start the cluster.
+            const neighbors = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]];
+            const [nx, ny] = neighbors[Math.floor(tilePrng() * neighbors.length)];
+            generateCluster(nx, ny, 'M', tilePrng); // 'M' for mountain
         } else {
             setTile(x, y, char);
         }
         // Fallback to ensure a tile is always set
-        if (!worldData.get(y).has(x)) {
+        if (!worldZeroData.get(y).has(x)) {
             setTile(x, y, char);
         }
     }
-    return worldData.get(y).get(x);
+    return worldZeroData.get(y).get(x);
 }
 
 // Function to apply zoom level
 function applyZoom() {
     const oldTileSize = zoomLevels[currentZoomLevelIndex].tileSize;
-    const centerX = worldOffset.x + Math.floor(viewSize.width / 2);
-    const centerY = worldOffset.y + Math.floor(viewSize.height / 2);
+    const centerX = worldZeroOffset.x + Math.floor(viewSize.width / 2);
+    const centerY = worldZeroOffset.y + Math.floor(viewSize.height / 2);
 
     const { fontSize, tileSize } = zoomLevels[currentZoomLevelIndex];
     document.documentElement.style.setProperty('--world-font-size', `${fontSize}px`);
@@ -232,8 +266,8 @@ function applyZoom() {
     onResize(); // Recalculate viewSize based on new tileSize
 
     // Adjust worldOffset to keep the same world coordinate centered
-    worldOffset.x = centerX - Math.floor(viewSize.width / 2);
-    worldOffset.y = centerY - Math.floor(viewSize.height / 2);
+    worldZeroOffset.x = centerX - Math.floor(viewSize.width / 2);
+    worldZeroOffset.y = centerY - Math.floor(viewSize.height / 2);
     render(); // Re-render with adjusted offset
 }
 
@@ -242,16 +276,23 @@ function saveGame() {
     localStorage.setItem('characterName', characterName);
     localStorage.setItem('characterAttributes', JSON.stringify(characterAttributes));
     localStorage.setItem('startTime', startTime);
-    const worldDataArray = Array.from(worldData.entries()).map(([y, row]) => [y, Array.from(row.entries())]);
-    localStorage.setItem('worldData', JSON.stringify(worldDataArray));
+    localStorage.setItem('worldSeed', worldSeed);
+    // worldZeroData is no longer saved to localStorage as it's generated on-the-fly
     const playerLocation = {
-        x: worldOffset.x + Math.floor(viewSize.width / 2),
-        y: worldOffset.y + Math.floor(viewSize.height / 2)
+        x: worldZeroOffset.x + Math.floor(viewSize.width / 2),
+        y: worldZeroOffset.y + Math.floor(viewSize.height / 2)
     };
     localStorage.setItem('playerLocation', JSON.stringify(playerLocation));
     localStorage.setItem('currentZoomLevelIndex', currentZoomLevelIndex);
+    localStorage.setItem('recallLocations', JSON.stringify(recallLocations));
     updateCharacterName();
     closeCharacterPanel();
+
+    const saveMessage = document.getElementById('save-message');
+    saveMessage.classList.add('show');
+    setTimeout(() => {
+        saveMessage.classList.remove('show');
+    }, 2000);
 }
 
 function loadGame() {
@@ -270,11 +311,15 @@ function loadGame() {
         startTime = parseInt(savedStartTime);
     }
 
-    const savedWorldData = localStorage.getItem('worldData');
-    if (savedWorldData) {
-        const worldDataArray = JSON.parse(savedWorldData);
-        worldData = new Map(worldDataArray.map(([y, rowArray]) => [y, new Map(rowArray)]));
+    const savedWorldSeed = localStorage.getItem('worldSeed');
+    if (savedWorldSeed) {
+        worldSeed = parseInt(savedWorldSeed);
+    } else {
+        worldSeed = Date.now();
+        localStorage.setItem('worldSeed', worldSeed);
     }
+
+    // worldZeroData will now be generated on-the-fly based on the seed
 
     const savedLocation = localStorage.getItem('playerLocation');
     if (savedLocation) {
@@ -285,24 +330,45 @@ function loadGame() {
     if (savedZoomLevel !== null) {
         currentZoomLevelIndex = parseInt(savedZoomLevel);
     }
+
+    const savedRecallLocations = localStorage.getItem('recallLocations');
+    if (savedRecallLocations) {
+        recallLocations = JSON.parse(savedRecallLocations);
+    } else {
+        recallLocations[0] = {x: 0, y: 0};
+    }
 }
 
-function render() {
-    const playerWorldX = worldOffset.x + Math.floor(viewSize.width / 2);
-    const playerWorldY = worldOffset.y + Math.floor(viewSize.height / 2);
-    coords.innerHTML = `Coords: X${playerWorldX}, Y${-playerWorldY}`;
+function updatePanelInfo() {
+    const playerWorldX = worldZeroOffset.x + Math.floor(viewSize.width / 2);
+    const playerWorldY = worldZeroOffset.y + Math.floor(viewSize.height / 2);
+    const newCoords = `Coords: X${playerWorldX}, Y${-playerWorldY}`;
+
+    if (newCoords !== lastPlayerCoords) {
+        coords.innerHTML = newCoords;
+        lastPlayerCoords = newCoords;
+    }
 
     const playerTileChar = getTile(playerWorldX, playerWorldY);
     statusDiv.innerHTML = `Loc: ${charData[playerTileChar].description}`;
 
     const imageName = charData[playerTileChar].image;
     if (imageName) {
-        statusImageDiv.innerHTML = `<img src="images/${imageName}" alt="${charData[playerTileChar].description}">`;
+        const newSrc = `images/${imageName}`;
+        if (tileImage.src !== newSrc) {
+            tileImage.src = newSrc;
+            tileImage.alt = charData[playerTileChar].description;
+        }
+        tileImage.classList.remove('hidden');
     } else {
-        statusImageDiv.innerHTML = '';
+        tileImage.classList.add('hidden');
     }
+}
 
-    world.innerHTML = '';
+function render() {
+    updatePanelInfo();
+
+    worldContainer.innerHTML = '';
     const playerX = Math.floor(viewSize.width / 2);
     const playerY = Math.floor(viewSize.height / 2);
 
@@ -317,15 +383,18 @@ function render() {
                 tileDiv.innerHTML = 'ǒ';
                 tileDiv.classList.add('player');
             } else {
-                const worldX = worldOffset.x + x;
-                const worldY = worldOffset.y + y;
+                const worldX = worldZeroOffset.x + x;
+                const worldY = worldZeroOffset.y + y;
                 const char = getTile(worldX, worldY);
                 tileDiv.innerHTML = char;
                 tileDiv.style.color = charData[char].color;
+                if (charData[char].bg) {
+                    tileDiv.style.backgroundColor = charData[char].bg;
+                }
             }
             rowDiv.appendChild(tileDiv);
         }
-        world.appendChild(rowDiv);
+        worldContainer.appendChild(rowDiv);
     }
 }
 
@@ -339,22 +408,22 @@ document.addEventListener('keydown', (event) => {
         case 'w':
         case 'W':
         case 'ArrowUp':
-            worldOffset.y--;
+            worldZeroOffset.y--;
             break;
         case 's':
         case 'S':
         case 'ArrowDown':
-            worldOffset.y++;
+            worldZeroOffset.y++;
             break;
         case 'a':
         case 'A':
         case 'ArrowLeft':
-            worldOffset.x--;
+            worldZeroOffset.x--;
             break;
         case 'd':
         case 'D':
         case 'ArrowRight':
-            worldOffset.x++;
+            worldZeroOffset.x++;
             break;
         case '+':
         case '=': // Zoom in
@@ -374,20 +443,31 @@ document.addEventListener('keydown', (event) => {
 });
 
 function onResize() {
-    const centerX = worldOffset.x + Math.floor(viewSize.width / 2);
-    const centerY = worldOffset.y + Math.floor(viewSize.height / 2);
+    const centerX = worldZeroOffset.x + Math.floor(viewSize.width / 2);
+    const centerY = worldZeroOffset.y + Math.floor(viewSize.height / 2);
 
     const currentTileSize = zoomLevels[currentZoomLevelIndex].tileSize;
-    viewSize.width = Math.floor(world.clientWidth / currentTileSize);
-    viewSize.height = Math.floor(world.clientHeight / currentTileSize);
+    viewSize.width = Math.floor(worldContainer.clientWidth / currentTileSize);
+    viewSize.height = Math.floor(worldContainer.clientHeight / currentTileSize);
 
     // Adjust worldOffset to keep the same world coordinate centered
-    worldOffset.x = centerX - Math.floor(viewSize.width / 2);
-    worldOffset.y = centerY - Math.floor(viewSize.height / 2);
+    worldZeroOffset.x = centerX - Math.floor(viewSize.width / 2);
+    worldZeroOffset.y = centerY - Math.floor(viewSize.height / 2);
     render();
 }
 
 window.addEventListener('resize', onResize);
+
+function updateRecallUI() {
+    for (let i = 0; i < recallLocations.length; i++) {
+        const recallCoords = document.getElementById(`recall-coords-${i + 1}`);
+        if (recallLocations[i]) {
+            recallCoords.textContent = `X${recallLocations[i].x},Y${-recallLocations[i].y}`;
+        } else {
+            recallCoords.textContent = 'Not set.';
+        }
+    }
+}
 
 function updateCharacterName() {
     characterNameSpan.textContent = characterName;
@@ -412,6 +492,7 @@ function closeInfoPanel() {
 
 document.addEventListener('DOMContentLoaded', () => {
     loadGame();
+    updateRecallUI();
 
     function updateAttributesUI() {
         strValue.textContent = String(characterAttributes.strength).padStart(2, '0');
@@ -453,6 +534,36 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    for (let i = 0; i < 3; i++) {
+        document.getElementById(`set-recall-${i + 1}`).addEventListener('click', (e) => {
+            e.preventDefault();
+            setRecallAudio.play();
+            const playerWorldX = worldZeroOffset.x + Math.floor(viewSize.width / 2);
+            const playerWorldY = worldZeroOffset.y + Math.floor(viewSize.height / 2);
+            recallLocations[i] = { x: playerWorldX, y: playerWorldY };
+            updateRecallUI();
+            saveGame();
+        });
+
+        document.getElementById(`recall-${i + 1}`).addEventListener('click', (e) => {
+            e.preventDefault();
+            if (recallLocations[i]) {
+                recallAudio.play();
+                teleportTransition.classList.add('active');
+
+                setTimeout(() => {
+                    worldZeroOffset.x = recallLocations[i].x - Math.floor(viewSize.width / 2);
+                    worldZeroOffset.y = recallLocations[i].y - Math.floor(viewSize.height / 2);
+                    render();
+
+                    setTimeout(() => {
+                        teleportTransition.classList.remove('active');
+                    }, 100); // Short delay to allow render to start
+                }, 500); // Corresponds to the transition duration
+            }
+        });
+    }
+
     // Day/Night Cycle Initialisation
     applyCycleStyles();
     updateDayNightCycle(startTime); // Set initial state instantly (no transition class yet)
@@ -460,7 +571,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Use a short timeout to allow the initial color to be rendered,
     // then enable transitions for all future changes.
     setTimeout(() => {
-        world.classList.add('enable-transition');
+        worldContainer.classList.add('enable-transition');
     }, 50); // 50ms is enough for the initial paint
 
     setInterval(() => updateDayNightCycle(startTime), 1000); // Check for phase change every second
@@ -470,12 +581,12 @@ document.addEventListener('DOMContentLoaded', () => {
     updateAttributesUI();
     applyZoom(); // Apply initial zoom level (or loaded zoom level)
     if (loadedPlayerLocation) {
-        worldOffset.x = loadedPlayerLocation.x - Math.floor(viewSize.width / 2);
-        worldOffset.y = loadedPlayerLocation.y - Math.floor(viewSize.height / 2);
+        worldZeroOffset.x = loadedPlayerLocation.x - Math.floor(viewSize.width / 2);
+        worldZeroOffset.y = loadedPlayerLocation.y - Math.floor(viewSize.height / 2);
     } else {
         // Center the initial view
-        worldOffset.x = -Math.floor(viewSize.width / 2);
-        worldOffset.y = -Math.floor(viewSize.height / 2);
+        worldZeroOffset.x = -Math.floor(viewSize.width / 2);
+        worldZeroOffset.y = -Math.floor(viewSize.height / 2);
     }
     render();
 });
